@@ -1,0 +1,279 @@
+# Instalar as bibliotecas necessárias
+%pip install -q google-adk google-generativeai
+
+# Imports
+import os
+import re
+import time
+from google.colab import userdata
+from google.adk.sessions import InMemorySessionService
+from google.adk.runners import Runner
+from google.adk.agents import LlmAgent, SequentialAgent
+from google.genai import types
+import ipywidgets as widgets
+from IPython.display import display
+
+# Configuração da API
+api_key = userdata.get("GOOGLE_API_KEY")
+os.environ["GOOGLE_API_KEY"] = api_key
+
+MODEL_ID = "gemini-1.5-flash"
+DELAY_ENTRE_CHAMADAS = 5  # Aumentar se ocorrer erro 429
+
+# Redações exemplo 
+redacao_nota_alta = """Redação nota alta (960)
+
+TEMA: Carnaval e apropriação cultural 
+
+Carnaval é alegria, diversão, contravenção. É o momento de se despir do maçante compromisso cotidiano das relações profissionais e se permitir sorrir e brincar. Por isso, usar fantasias, roupas coloridas, chapéus estilizados e outros adereços, que nos permitam compartilhar essa felicidade com outros cidadãos, não pode ser encarado como ofensivo ou uma apropriação indevida de uma cultura por outra.
+
+É importante salientar, inicialmente, que as pessoas vão para as ruas para se divertir, esquecer por instantes os problemas e lutas cotidianas. Querem comida, diversão e arte para dar um sentido mais amplo a sua existência. O que prevalece nesse momento é a brincadeira, o lúdico, o entretenimento, passando ao longe a ideia de hostilizar e humilhar qualquer segmento ideológico e cultural, mesmo a cultura indígena, tão sofrida e desrespeitada, principalmente pela classe política.
+
+Convém ressaltar que o desrespeito não advém do fato de as pessoas usarem cocares ou adereços que façam referência à cultura indígena. Ele se consolida na não aceitação da forma em que eles vivem, no preconceito contra os nativos, na hostilidade que sofrem ou sofreram, como no caso do indígena incendiado em um ponto de ônibus em Brasília, na invasão e expulsão de suas terras, no pensamento estilizado de que eles são vagabundos. Esses fatores, somados, revelam um profundo desprezo e demonstram o quanto precisamos fazer e transformar para garantir a eles uma existência digna.
+
+Com isso, focar a atenção em fantasias de carnaval é perder tempo com polêmicas supérfluas diante do gigantesco desafio de eliminar as graves agressões sofridas historicamente. Eles precisam de respeito, reconhecimento, segurança e que seus direitos, como cidadãos brasileiros, sejam respeitados. Necessitam que o governo garanta a inviolabilidade do seu território para não se tornarem vítimas de exploradores gananciosos. Por fim, cabe aos governantes e à sociedade civil organizada mudar o rumo dessa verdadeira tragédia para que eles não percam sua identidade.
+
+Comentário geral
+O texto só não recebe a nota máxima devido às palavras ou expressões inadequadas, que foram assinaladas em vermelho. "Contravenção", não está totalmente incorreto, pois é sinônimo de "transgressão", mas a palavra é mais usada para referir-se a ilegalidades. A citação dos Titãs ("comida, diversão e arte") é inadequada, pois "comida" propriamente dita nada tem que ver com carnaval. "Segmento ideológico e cultural" é uma expressão pretensiosa e ambígua. O autor está se referindo é a grupos étnicos e culturais. Por "pensamento estilizado", aparentemente, o autor quis dizer pensamento "estereotipado". Enfim, todos os trechos em vermelho destoam do texto, que, de resto, revela um estilo propriamente autoral. As muitas qualidades do texto não se referem só à linguagem, em todas as outras competências o autor teve um desempenho excelente, redigindo uma dissertação exemplar, em termos de argumentação, coesão e coerência textual.
+
+Competências avaliadas
+As notas são definidas segundo os critérios da pontuação do MEC
+
+Título/nota (0 a 1000):
+1. Demonstrar domínio da norma culta da língua escrita — 160
+2. Compreender a proposta da redação e aplicar conceito das várias áreas de conhecimento para desenvolver o tema, dentro dos limites estruturais do texto dissertativo-argumentativo — 200
+3. Selecionar, relacionar, organizar e interpretar informações, fatos, opiniões e argumentos em defesa de um ponto de vista — 200
+4. Demonstrar conhecimento dos mecanismos linguísticos necessários para a construção da argumentação — 200
+5. Elaborar a proposta de solução para o problema abordado, mostrando respeito aos valores humanos e considerando a diversidade sociocultural — 200
+"""
+
+redacao_nota_baixa = """redação nota baixa (160)
+
+TEMA: Carnaval e apropriação cultural 
+
+A apropriação cultural contínua das escolas de samba sobre a diversidade de culturas em suas alegorias e fantasias, expressam fantasias expressam algo sem ao menos ter conhecimento sobre as suas origens e tradições.
+
+Em seu vídeo publicado no Youtube, a ativista Katú Mirim relata como a sociedade expõe certa cultura e seus modos de agir ao público sem haver estudado sobre o seu fato histórico e a cada símbolo retratado, torna-se ato de racismo.
+
+Desde o período colonial, é lícito dizer que há uma grande miscigenação de raças, idiomas e diversas culturas no Brasil. E isso faz que a etnia na qual é alvo pertinência seja aberta de modo que tenha conhecimento sobre seus desafios e dificuldades diárias e a cada objeto simbólico estudado. Não tendo teorias sobre o tema abordado pode gerar conflitos entre as raças e a sociedade, gerando violência, desrespeito e racismo.
+
+Ademais, a persistência em demonstrar multiculturas encaradas como homenagem se torna uma ofensa. Tais povos, como, por exemplo, negros e indígenas, quando possuem acessórios, roupas e outros objetos do povo branco, têm olhares de discriminação sobre a sociedade, encaradas de forma etnocêntrica.
+
+Por tudo isso, o Ministério da Educação deve apresentar à comunidade, em forma de palestras e práticas em todos os institutos abertos ao corpo social, a diversidade de grupos que há em nosso país, e que saibam usufruir deste conhecimento e expor tal etnia em grandes eventos com fatos relatados.
+
+Comentário geral
+Lamentavelmente, o autor mal consegue se expressar por escrito. É até possível encontrar no texto uma crítica à apropriação cultural, mas em meio a um caos linguístico enorme. A escolha do vocabulário e sua combinação em frases que têm a sintaxe truncada ou que, simplesmente, não apresentam um mínimo de ordem sintática acabam por comprometer todo o texto. Não há uma argumentação explícita na condenação da apropriação cultural, há apenas uma série de afirmações confusas, que talvez façam todo o sentido na cabeça do autor, mas ele não consegue deixá-la clara para o leitor, quanto mais persuadi-lo? O autor precisa aprender a organizar suas ideias, fazendo um esquema daquilo que ele pensa, antes de redigir. Precisa ter em mente que é necessário ser compreendido. Do contrário, o resultado é tão precário que mal pode ser corrigido. A única salvação para o texto seria redigi-lo novamente, por completo.
+
+Competências avaliadas
+As notas são definidas segundo os critérios da pontuação do MEC
+
+Título/nota (0 a 1000):
+1. Demonstrar domínio da norma culta da língua escrita — 20
+2. Compreender a proposta da redação e aplicar conceito das várias áreas de conhecimento para desenvolver o tema, dentro dos limites estruturais do texto dissertativo-argumentativo — 80
+3. Selecionar, relacionar, organizar e interpretar informações, fatos, opiniões e argumentos em defesa de um ponto de vista — 20
+4. Demonstrar conhecimento dos mecanismos linguísticos necessários para a construção da argumentação — 20
+5. Elaborar a proposta de solução para o problema abordado, mostrando respeito aos valores humanos e considerando a diversidade sociocultural — 20
+"""
+
+# Critérios das competências do ENEM
+competencias = {
+    "competencia_1": """
+1. Domínio da escrita formal da língua portuguesa
+É avaliado se a redação do participante está adequada às regras de ortografia, como acentuação, ortografia, uso de hífen, emprego de letras maiúsculas e minúsculas e separação silábica. Ainda são analisadas a regência verbal e nominal, concordância verbal e nominal, pontuação, paralelismo, emprego de pronomes e crase.
+
+São seis níveis de desempenho:
+
+200 pontos: Demonstra excelente domínio da modalidade escrita formal da língua portuguesa e de escolha de registro. Desvios gramaticais ou de convenções da escrita serão aceitos somente com excepcionalidade e quando não caracterizarem reincidência.
+
+160 pontos: Demonstra bom domínio da modalidade escrita formal da língua portuguesa e de escolha de registro, com poucos desvios gramaticais e de convenções da escrita.
+
+120 pontos: Demonstra domínio mediano da modalidade escrita formal da língua portuguesa e de escolha de registro, com alguns desvios gramaticais e de convenções da escrita.
+
+80 pontos: Demonstra domínio insuficiente da modalidade escrita formal da língua portuguesa, com muitos desvios gramaticais, de escolha de registro e de convenções da escrita.
+
+40 pontos: Demonstra domínio precário da modalidade escrita formal da língua portuguesa, de forma sistemática, com diversificados e frequentes desvios gramaticais, de escolha de registro e de convenções da escrita.
+
+0 ponto: Demonstra desconhecimento da modalidade escrita formal da língua portuguesa.
+""",
+    "competencia_2": """
+2. Compreender o tema e não fugir do que é proposto
+Avalia as habilidades integradas de leitura e de escrita do candidato. O tema constitui o núcleo das ideias sobre as quais a redação deve ser organizada e é caracterizado por ser uma delimitação de um assunto mais abrangente.
+
+Eis os seis níveis de desempenho:
+
+200 pontos: Desenvolve o tema por meio de argumentação consistente, a partir de um repertório sociocultural produtivo e apresenta excelente domínio do texto dissertativo-argumentativo.
+
+160 pontos: Desenvolve o tema por meio de argumentação consistente e apresenta bom domínio do texto dissertativo-argumentativo, com proposição, argumentação e conclusão.
+
+120 pontos: Desenvolve o tema por meio de argumentação previsível e apresenta domínio mediano do texto dissertativo-argumentativo, com proposição, argumentação e conclusão.
+
+80 pontos: Desenvolve o tema recorrendo à cópia de trechos dos textos motivadores ou apresenta domínio insuficiente do texto dissertativo-argumentativo, não atendendo à estrutura com proposição, argumentação e conclusão.
+
+40 pontos: Apresenta o assunto, tangenciando o tema, ou demonstra domínio precário do texto dissertativo-argumentativo, com traços constantes de outros tipos textuais.
+
+0 ponto: Fuga ao tema/não atendimento à estrutura dissertativo-argumentativa. Nestes casos a redação recebe nota zero e é anulada.
+""",
+    "competencia_3": """
+3. Selecionar, relacionar, organizar e interpretar informações, fatos, opiniões e argumentos em defesa de um ponto de vista
+O candidato precisa elaborar um texto que apresente, claramente, uma ideia a ser defendida e os argumentos que justifiquem a posição assumida em relação à temática da proposta da redação. Trata da coerência e da plausibilidade entre as ideias apresentadas no texto, o que é garantido pelo planejamento prévio à escrita, ou seja, pela elaboração de um projeto de texto.
+
+Eis os seis níveis de desempenho:
+
+200 pontos: Apresenta informações, fatos e opiniões relacionados ao tema proposto, de forma consistente e organizada, configurando autoria, em defesa de um ponto de vista.
+
+160 pontos: Apresenta informações, fatos e opiniões relacionados ao tema, de forma organizada, com indícios de autoria, em defesa de um ponto de vista.
+
+120 pontos: Apresenta informações, fatos e opiniões relacionados ao tema, limitados aos argumentos dos textos motivadores e pouco organizados, em defesa de um ponto de vista.
+
+80 pontos: Apresenta informações, fatos e opiniões relacionados ao tema, mas desorganizados ou contraditórios e limitados aos argumentos dos textos motivadores, em defesa de um ponto de vista.
+
+40 pontos: Apresenta informações, fatos e opiniões pouco relacionados ao tema ou incoerentes e sem defesa de um ponto de vista.
+
+0 ponto: Apresenta informações, fatos e opiniões não relacionados ao tema e sem defesa de um ponto de vista.
+""",
+    "competencia_4": """
+4. Conhecimento dos mecanismos linguísticos necessários para a construção da argumentação
+São avaliados itens relacionados à estruturação lógica e formal entre as partes da redação. A organização textual exige que as frases e os parágrafos estabeleçam entre si uma relação que garanta uma sequência coerente do texto e a interdependência entre as ideias.
+
+Preposições, conjunções, advérbios e locuções adverbiais são responsáveis pela coesão do texto porque estabelecem uma inter-relação entre orações, frases e parágrafos. Cada parágrafo será composto por um ou mais períodos também articulados. Cada ideia nova precisa estabelecer relação com as anteriores.
+
+Abaixo, seguem os seis níveis de desempenho:
+
+200 pontos: Articula bem as partes do texto e apresenta repertório diversificado de recursos coesivos.
+
+160 pontos: Articula as partes do texto, com poucas inadequações, e apresenta repertório diversificado de recursos coesivos.
+
+120 pontos: Articula as partes do texto, de forma mediana, com inadequações, e apresenta repertório pouco diversificado de recursos coesivos.
+
+80 pontos: Articula as partes do texto, de forma insuficiente, com muitas inadequações e apresenta repertório limitado de recursos coesivos.
+
+40 pontos: Articula as partes do texto de forma precária.
+
+0 ponto: Não articula as informações.
+""",
+    "competencia_5": """
+5. Respeito aos direitos humanos
+Apresentar uma proposta de intervenção para o problema abordado que respeite os direitos humanos. Propor uma intervenção para o problema apresentado pelo tema significa sugerir uma iniciativa que busque, mesmo que minimamente, enfrentá-lo. A elaboração de uma proposta de intervenção na prova de redação do Enem representa uma ocasião para que o candidato demonstre o preparo para o exercício da cidadania, para atuar na realidade em consonância com os direitos humanos.
+
+Eis os seis níveis de desempenho:
+
+200 pontos: Elabora muito bem proposta de intervenção, detalhada, relacionada ao tema e articulada à discussão desenvolvida no texto.
+
+160 pontos: Elabora bem proposta de intervenção relacionada ao tema e articulada à discussão desenvolvida no texto.
+
+120 pontos: Elabora, de forma mediana, proposta de intervenção relacionada ao tema e articulada à discussão desenvolvida no texto.
+
+80 pontos: Elabora, de forma insuficiente, proposta de intervenção relacionada ao tema, ou não articulada com a discussão desenvolvida no texto.
+
+40 pontos: Apresenta proposta de intervenção vaga, precária ou relacionada apenas ao assunto.
+
+0 ponto: Não apresenta proposta de intervenção ou apresenta proposta não relacionada ao tema ou ao assunto.
+"""
+}
+# Criação dos agentes individuais para cada competência
+def criar_agente_competencia(id_comp, descricao):
+    return LlmAgent(
+        name=id_comp,
+        model=MODEL_ID,
+        instruction=f"""
+Você é um corretor experiente do ENEM. Avalie APENAS a competência a seguir no texto da redação apresentado.
+
+Critério a ser avaliado:
+{descricao}
+
+Siga rigorosamente os níveis de pontuação (0, 40, 80, 120, 160, 200) com base apenas nesta competência.
+
+Responda apenas no seguinte formato:
+Nota: [número exato]
+Justificativa: [entre 3 e 5 linhas, claras e objetivas]
+
+Redação para referência com desempenho ALTO:
+{redacao_nota_alta}
+
+Redação para referência com desempenho BAIXO:
+{redacao_nota_baixa}"""
+    )
+
+# Criar todos os agentes
+agentes = [criar_agente_competencia(f"competencia_{i}", competencias[f"competencia_{i}"]) for i in range(1, 6)]
+
+# Criar agente sequencial
+avaliador = SequentialAgent(
+    name="avaliador_redacao_enem",
+    sub_agents=agentes
+)
+
+# Função de avaliação da redação
+def avaliar_redacao_completa(redacao):
+    session_service = InMemorySessionService()
+    runner = Runner(agent=avaliador, app_name="avaliador_redacao", session_service=session_service)
+
+    session = session_service.create_session(
+        app_name="avaliador_redacao",
+        user_id="usuario",
+        session_id="sessao1"
+    )
+
+    content = types.Content(role="user", parts=[types.Part(text=redacao)])
+
+    print(" Iniciando avaliação...\n")
+    nota_total = 0
+
+    competencias_nomes = [
+        "Competência 1: Domínio da escrita formal da língua portuguesa",
+        "Competência 2: Compreensão do tema",
+        "Competência 3: Argumentação",
+        "Competência 4: Coesão e coerência",
+        "Competência 5: Proposta de intervenção"
+    ]
+
+    avaliacoes = []
+    for event in runner.run(user_id="usuario", session_id="sessao1", new_message=content):
+        if event.is_final_response():
+            avaliacoes.append(event.content.parts[0].text)
+
+    for i, texto in enumerate(avaliacoes):
+        print(f"\n📘 Avaliação da {competencias_nomes[i]}:\n")
+        print(texto)
+        match = re.search(r"(?i)nota[:\-]?\s*(\d+)", texto)
+        if match:
+            nota_total += int(match.group(1))
+
+    print(f"\n Nota final: {nota_total}/1000")
+
+
+
+# Widgets e interface
+tema_widget = widgets.Text(
+    value='',
+    placeholder='Digite o tema da redação...',
+    description='Tema:',
+    layout=widgets.Layout(width='100%')
+)
+
+redacao_widget = widgets.Textarea(
+    value='',
+    placeholder='Cole ou escreva aqui sua redação completa...',
+    description='Redação:',
+    layout=widgets.Layout(width='100%', height='300px')
+)
+
+botao = widgets.Button(description=" Avaliar Redação", button_style='success')
+saida = widgets.Output()
+
+def ao_clicar(botao):
+    saida.clear_output()
+    tema = tema_widget.value.strip()
+    redacao = redacao_widget.value.strip()
+
+    with saida:
+        if not tema or not redacao:
+            print(" Preencha o tema e a redação.")
+        else:
+            print(f"Tema: {tema}\n")
+            avaliar_redacao_completa(redacao)
+
+botao.on_click(ao_clicar)
+
+# Mostrar interface
+display(tema_widget, redacao_widget, botao, saida)
